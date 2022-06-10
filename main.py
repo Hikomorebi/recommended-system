@@ -13,7 +13,7 @@ user_average_table = []  # 列表元素对应每个用户的电影打分平均�
 movie_average_table = {}  # 对应每部电影被用户打分的平均值
 temp_count = 0  # 用于计算总平均值
 user_set = []  # 列表元素为集合，对应每个用户打过分的电影的集合
-n = 3  # 取相似用户的个数
+n = 6  # 取相似用户的个数
 diffsum = 0
 RMSEnum = 0  # RMSE中的N
 """
@@ -116,7 +116,6 @@ with open("data-202205/itemAttribute.txt", 'r') as f:
 类似于item_item的协同过滤，但用attribute去衡量movie之间的相似度
 '''
 
-
 def item_item(score, movie_id, user_id):
     if movie_id not in movie_attribute_table.keys():
         return score
@@ -152,11 +151,11 @@ def item_item(score, movie_id, user_id):
         else:
             isUse2 = False
     if isUse1 and isUse2:
-        return 0.8 * score + 0.1 * (attribute1_score + attribute2_score)  # 此时两个属性的权重是55开，可以改成不均等的（主属性、副属性）
+        return 0.6 * score + 0.4 * (0.5*attribute1_score + 0.5*attribute2_score)  # 此时两个属性的权重是55开，可以改成不均等的（主属性、副属性）
     elif isUse1:
-        return 0.8 * score + 0.2 * attribute1_score
+        return 0.6 * score + 0.4 * attribute1_score
     elif isUse2:
-        return 0.8 * score + 0.2 * attribute2_score
+        return 0.6 * score + 0.4 * attribute2_score
     else:
         return score
 
@@ -166,12 +165,14 @@ def item_item(score, movie_id, user_id):
 """
 num = 0
 tic = time.time()
-with open("data-202205/ourtest.txt", 'r') as f_test:
+istest = False
+with open("data-202205/test.txt", 'r') as f_test:
     with open("data-202205/ouranswer.txt", 'r') as f_answer:
         with open("data-202205/myresult.txt", 'w') as f_result:
             while True:
                 line = f_test.readline().strip()
-                f_answer.readline()
+                if istest:
+                    f_answer.readline()
                 if not line:
                     break
                 f_result.write(line + '\n')
@@ -183,15 +184,17 @@ with open("data-202205/ourtest.txt", 'r') as f_test:
                     num += 1
                     similarity_matrix = {}
                     movie_number = eval(f_test.readline().strip())  # 需要预测的 movie 的 id
-                    answerlist = f_answer.readline().strip().split()
-                    answer = float(answerlist[1])  # 正确答案，用于求RMSE
+                    if istest:
+                        answerlist = f_answer.readline().strip().split()
+                        answer = float(answerlist[1])  # 正确答案，用于求RMSE
                     write_line = '%d' % movie_number
                     if movie_number not in movie_table:  # 电影列表中没有该电影
                         base_score = user_average_table[user_id]
                         final_scores = item_item(base_score, movie_number, user_id)
                         write_line += ' %f\n' % final_scores
-                        diffsum += (final_scores - answer) ** 2
-                        RMSEnum += 1
+                        if istest:
+                            diffsum += (final_scores - answer) ** 2
+                            RMSEnum += 1
                         f_result.write(write_line)
                         continue
                     base_score = user_average_table[user_id] + movie_average_table[movie_number] - average
@@ -236,10 +239,11 @@ with open("data-202205/ourtest.txt", 'r') as f_test:
                     elif final_scores < 0:
                         final_scores = 0
                     write_line += ' %f\n' % final_scores
-                    diffsum += ((final_scores - answer) ** 2)
-                    RMSEnum += 1
+                    if istest:
+                        diffsum += ((final_scores - answer) ** 2)
+                        RMSEnum += 1
                     f_result.write(write_line)
-                    # print(write_line)
+                    #print(write_line)
                     if num % 1000 == 0:
                         print("finish %d" % num)
                         toc = time.time()
